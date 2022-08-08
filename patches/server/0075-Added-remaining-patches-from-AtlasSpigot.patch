@@ -1,0 +1,202 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: airoons <thegamerslvlv@gmail.com>
+Date: Mon, 8 Aug 2022 16:19:32 +0300
+Subject: [PATCH] Added remaining patches from AtlasSpigot
+
+
+diff --git a/src/main/java/com.nftworlds/objects/BlowableMaterials.java b/src/main/java/com.nftworlds/objects/BlowableMaterials.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6bf599352a84f0e0d5cca0dcfb529986dbb51c0d
+--- /dev/null
++++ b/src/main/java/com.nftworlds/objects/BlowableMaterials.java
+@@ -0,0 +1,19 @@
++package net.atlaspvp;
++
++import org.bukkit.Material;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class BlowableMaterials {
++    public static List<Material> blowableList = new ArrayList<>();
++
++    public static void init(List<String> l) {
++        blowableList.clear();
++        l.forEach(m -> {
++            blowableList.add(Material.matchMaterial(m));
++        });
++        if (AtlasConfig.DontBlowList != null) AtlasConfig.DontBlowList.clear();
++        AtlasConfig.DontBlowList = l;
++    }
++}
+diff --git a/src/main/java/com.nftworlds/objects/BreakableUnbreakables.java b/src/main/java/com.nftworlds/objects/BreakableUnbreakables.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..bde34a710d804639a7f5798efd78c596a611366a
+--- /dev/null
++++ b/src/main/java/com.nftworlds/objects/BreakableUnbreakables.java
+@@ -0,0 +1,81 @@
++package net.atlaspvp;
++
++import com.mojang.math.Vector3f;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Registry;
++import net.minecraft.core.Vec3i;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.phys.Vec3;
++import org.bukkit.Bukkit;
++import org.bukkit.Material;
++import oshi.util.tuples.Triplet;
++
++import java.util.HashMap;
++import java.util.Locale;
++import java.util.Map;
++
++public class BreakableUnbreakables {
++    public Map<Long, Integer> ghealth;
++
++    public BreakableUnbreakables() {
++        this.ghealth = new HashMap<>();
++    }
++
++    public boolean isBreakable(BlockPos b, BlockState bs) {
++        Long spos = getSpos(b);
++        if (!ghealth.containsKey(spos)) {
++            String matx = Registry.BLOCK.getKey(bs.getBlock()).getPath();
++            if (AtlasConfig.BlockDurabilities.containsKey(matx)) {
++                ghealth.put(spos, AtlasConfig.BlockDurabilities.get(matx));
++            } else {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    public boolean doDamage(BlockPos b) {
++        Long spos = getSpos(b);
++        ghealth.put(spos, ghealth.get(spos)-1);
++        if (ghealth.get(spos) < 1) {
++            ghealth.remove(spos);
++            return true;
++        }
++        return false;
++    }
++
++    public void tryCleanup(BlockPos b) {
++        Long spos = getSpos(b);
++        if (ghealth.containsKey(spos)) {
++            ghealth.remove(spos);
++        }
++    }
++
++    private Long getSpos(BlockPos b) {
++        return b.asLong();
++    }
++
++
++    public String displayMessage(BlockPos b, Material m, Level l) {
++        int h = 1;
++        int mh = 1;
++        if (ghealth.containsKey(getSpos(b))) {
++            h = getHealth(b);
++            mh = getMaxHealth(m);
++        }
++        return AtlasConfig.HealthCheckMessage.replace('&', '§').replace("%health%", ""+h).replace("%max%", ""+mh);
++    }
++
++    //methods are unsafe, only use if you know the item exists
++    public int getHealth(BlockPos b) {
++        Long spos = getSpos(b);
++        return ghealth.get(spos);
++    }
++
++    public int getMaxHealth(Material m) {
++        String matx = m.name().toLowerCase();
++        return AtlasConfig.BlockDurabilities.get(matx);
++    }
++}
+diff --git a/src/main/java/com.nftworlds/objects/BurnableMaterials.java b/src/main/java/com.nftworlds/objects/BurnableMaterials.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5c9a707028eea8a696c64b94d0714481063526b7
+--- /dev/null
++++ b/src/main/java/com.nftworlds/objects/BurnableMaterials.java
+@@ -0,0 +1,19 @@
++package net.atlaspvp;
++
++import org.bukkit.Material;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class BurnableMaterials {
++    public static List<Material> burnableList = new ArrayList<>();
++
++    public static void init(List<String> l) {
++        burnableList.clear();
++        l.forEach(m -> {
++            burnableList.add(Material.matchMaterial(m));
++        });
++        if (AtlasConfig.DontBurnList != null) AtlasConfig.DontBurnList.clear();
++        AtlasConfig.DontBurnList = l;
++    }
++}
+diff --git a/src/main/java/com.nftworlds/objects/ColumnSpawning.java b/src/main/java/com.nftworlds/objects/ColumnSpawning.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d5155a2a964d435c8d4520135e51ee3004f7bce7
+--- /dev/null
++++ b/src/main/java/com.nftworlds/objects/ColumnSpawning.java
+@@ -0,0 +1,39 @@
++package net.atlaspvp;
++
++import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
++import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
++import net.minecraft.sounds.SoundEvents;
++import net.minecraft.sounds.SoundSource;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.player.Player;
++
++import java.util.ArrayDeque;
++import java.util.Queue;
++
++public class ColumnSpawning {
++
++    private final Long2ObjectMap<Queue<Entity>> queuedSpawns = new Long2ObjectOpenHashMap<>();
++
++    public void queueSpawn(Entity entity) {
++        int floorX = entity.getBlockX();
++        int floorZ = entity.getBlockZ();
++        long key = (((long) floorX) << 32) | (floorZ & 0xffffffffL);
++
++        Queue<Entity> queue = queuedSpawns.get(key);
++        if (queue == null) {
++            queue = new ArrayDeque<>();
++            queuedSpawns.put(key, queue);
++        }
++        queue.add(entity);
++    }
++
++    public void dispatch() {
++        for (Queue<Entity> queue : queuedSpawns.values()) {
++            for (Entity entity; (entity = queue.poll()) != null; ) {
++                entity.level.addFreshEntity(entity);
++                entity.level.playSound((Player) null, entity.xo, entity.yo, entity.zo, SoundEvents.TNT_PRIMED, SoundSource.BLOCKS, 1.0F, 1.0F);
++            }
++        }
++        queuedSpawns.clear();
++    }
++}
+diff --git a/src/main/java/com.nftworlds/objects/DirectionSave.java b/src/main/java/com.nftworlds/objects/DirectionSave.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6cdc24c39840f4cd7e5502b03c9183f62835c2dd
+--- /dev/null
++++ b/src/main/java/com.nftworlds/objects/DirectionSave.java
+@@ -0,0 +1,8 @@
++package net.atlaspvp;
++
++import net.minecraft.core.Direction;
++
++public class DirectionSave {
++
++    public Direction direction = null;
++}

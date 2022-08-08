@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: airoons <thegamerslvlv@gmail.com>
+Date: Mon, 8 Aug 2022 15:35:06 +0300
+Subject: [PATCH] Removed tnt randomness
+
+
+diff --git a/src/main/java/com.nftworlds/NFTWorldsConfig.java b/src/main/java/com.nftworlds/NFTWorldsConfig.java
+index 2b9f0b6844af6cba30e1e1eca13b490c8bd43e7b..223ac75cd79807645a289587426f1a9b22179d56 100644
+--- a/src/main/java/com.nftworlds/NFTWorldsConfig.java
++++ b/src/main/java/com.nftworlds/NFTWorldsConfig.java
+@@ -394,4 +394,8 @@ public class NFTWorldsConfig {
+     public static boolean onlyPlayersPushEntities = true;
+     private static void onlyPlayersPushEntities() { onlyPlayersPushEntities = getBoolean("only-players-push-entities", true); }
+ 
++    public static boolean TNTspread;
++    private static void TNTspread() {
++        TNTspread = getBoolean("do-tnt-spread", false);
++    }
+ }
+\ No newline at end of file
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index dcbd9ec44fb8d1334aca33c136b121ab5c25a0e2..246f2112556f21942bcc2aef84e53ed975368f9b 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.entity.item;
+ 
+ import javax.annotation.Nullable;
++
++import com.nftworlds.NFTWorldsConfig;
+ import net.minecraft.core.particles.ParticleTypes;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.protocol.Packet;
+@@ -35,9 +37,14 @@ public class PrimedTnt extends Entity {
+     public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
+         this(EntityType.TNT, world);
+         this.setPos(x, y, z);
+-        double d3 = world.random.nextDouble() * 6.2831854820251465D;
+ 
+-        this.setDeltaMovement(-Math.sin(d3) * 0.02D, 0.20000000298023224D, -Math.cos(d3) * 0.02D);
++        if(NFTWorldsConfig.TNTspread){
++            double d3 = world.random.nextDouble() * 6.2831854820251465D;
++            this.setDeltaMovement(-Math.sin(d3) * 0.02D, 0.20000000298023224D, -Math.cos(d3) * 0.02D);
++        } else {
++            this.setDeltaMovement(0D, 0.20000000298023224D, 0D);
++        }
++
+         this.setFuse(80);
+         this.xo = x;
+         this.yo = y;
